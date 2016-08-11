@@ -5,10 +5,17 @@
 #include <android/bitmap.h>
 #include <android/log.h>
 
+#define DEBUG 1
+
+#ifdef DEBUG
 #define LOG_TAG "masker"
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
-#define LOGE(...) /* */
-//__android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
+#else
+#define LOG_TAG "masker"
+#define LOGD(...)
+#define LOGE(...)
+#endif
 
 using namespace std;
 
@@ -76,8 +83,6 @@ void Masker::mask(int x, int y) {
   while (ranges.size() > 0) {
     range = ranges.front();
     ranges.pop();
-    LOGD("Popped range: range[startX=%d, endX=%d, y=%d]", range.startX, range.endX, range.y);
-    LOGD("Ranges size: %lu", ranges.size());
 
     // check above and below each pixel in the flood fill range
     int downPxIdx = (width * (range.y + 1)) + range.startX;
@@ -111,9 +116,7 @@ void Masker::linearFill(int x, int y) {
   int i = (width * y) + x;
   while (true) {
     // mark this pixel
-    LOGD("Pixel before 0x%X", pixels[i]);
     pixels[i] |= MASK_COLOR;
-    LOGD("Pixel after 0x%X", pixels[i]);
 
     // decrement
     left--;

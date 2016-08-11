@@ -1,6 +1,7 @@
 package com.pixite.graphics;
 
 import android.graphics.Bitmap;
+import android.util.Log;
 
 public class Masker {
 
@@ -16,7 +17,9 @@ public class Masker {
 
     public Bitmap getMask(int x, int y) {
         Bitmap result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        long start = System.currentTimeMillis();
         native_mask(nativeInstance, result, x, y);
+        Log.d("Masker", "native_mask(): " + (System.currentTimeMillis() - start) + "ms");
         return result;
     }
 
