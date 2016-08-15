@@ -21,7 +21,15 @@
 
 using namespace std;
 
+/**
+ * Pixels within the region will be masked with this color, leaving
+ * the last channel (blue in argb) with it's original value.
+ */
 const int MASK_COLOR = 0xffffff00;
+
+/**
+ * The green channel is used to mark pixels that have already been checked.
+ */
 const int CHECKED_MASK = 0x0000ff00;
 
 struct range {
@@ -52,6 +60,10 @@ Masker::Masker(uint32_t *pixels, uint32_t width, uint32_t height) {
   this->height = height;
 }
 
+/**
+ * Empties the queue of ranges and resets all pixels so the blue
+ * channel contains the original value, and all others are 0
+ */
 void Masker::reset() {
   queue<range> empty;
   swap(ranges, empty);
@@ -60,10 +72,17 @@ void Masker::reset() {
   }
 }
 
+/**
+ * Returns true if a pixel has already been checked this round.
+ */
 bool Masker::pixelChecked(int position) {
   return (pixels[position] & CHECKED_MASK) == CHECKED_MASK;
 }
 
+/**
+ * Checks a pixel by checking that the blue value is within
+ * the threshold.
+ */
 bool Masker::checkPixel(int position) {
   int blue = pixels[position] & 0xFF;
   return blue >= 200 && blue <= 255;
