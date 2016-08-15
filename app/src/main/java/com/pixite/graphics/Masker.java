@@ -23,8 +23,13 @@ public class Masker {
         return result;
     }
 
+    public void uploadMask(int x, int y) {
+        native_upload(nativeInstance, x, y);
+    }
+
     private native long native_init(Bitmap src);
     private native void native_mask(long nativeInstance, Bitmap result, int x, int y);
+    private native void native_upload(long nativeInstance, int x, int y);
 
     static {
         System.loadLibrary("masker");

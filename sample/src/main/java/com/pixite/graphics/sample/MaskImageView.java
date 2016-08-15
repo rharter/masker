@@ -24,7 +24,7 @@ public class MaskImageView extends ImageView {
 
     public MaskImageView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        maskPaint.setColorFilter(new PorterDuffColorFilter(0xffff0000, PorterDuff.Mode.SRC_ATOP));
+        maskPaint.setColorFilter(new PorterDuffColorFilter(0xffffff00, PorterDuff.Mode.SRC_ATOP));
     }
 
     @Override

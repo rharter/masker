@@ -5,6 +5,8 @@
 #include <android/bitmap.h>
 #include <android/log.h>
 
+#include <GLES2/gl2.h>
+
 #define DEBUG 1
 
 #ifdef DEBUG
@@ -159,6 +161,8 @@ JNIEXPORT jlong JNICALL Java_com_pixite_graphics_Masker_native_1init(JNIEnv *env
 JNIEXPORT void JNICALL Java_com_pixite_graphics_Masker_native_1mask(JNIEnv *env, jobject instance,
                                                                     jlong nativeInstance, jobject result,
                                                                     jint x, jint y);
+JNIEXPORT void JNICALL
+    Java_com_pixite_graphics_Masker_native_1upload(JNIEnv *env, jobject instance, jlong nativeInstance, jint x, jint y);
 }
 
 
@@ -226,4 +230,11 @@ Java_com_pixite_graphics_Masker_native_1mask(JNIEnv *env, jobject instance, jlon
   memcpy(resultPixels, masker->pixels, sizeof(uint32_t) * masker->width * masker->height);
 
   AndroidBitmap_unlockPixels(env, result);
+}
+
+JNIEXPORT void JNICALL
+Java_com_pixite_graphics_Masker_native_1upload(JNIEnv *env, jobject instance, jlong nativeInstance, jint x, jint y) {
+  Masker *masker = reinterpret_cast<Masker*>(nativeInstance);
+  masker->mask(x, y);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, masker->width, masker->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, masker->pixels);
 }

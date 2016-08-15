@@ -11,7 +11,7 @@ android {
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         externalNativeBuild {
             cmake {
-                cppFlags ""
+                cppFlags "-std=c++11"
             }
         }
     }
@@ -36,3 +36,5 @@ dependencies {
     compile 'com.android.support:appcompat-v7:24.1.1'
     testCompile 'junit:junit:4.12'
 }
+
+apply from: rootProject.file('gradle/gradle-mvn-push.gradle')
