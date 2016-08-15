@@ -24,7 +24,7 @@ public class MaskImageView extends ImageView {
 
     public MaskImageView(Context context, AttributeSet attrs) {
         super(context, attrs);
-        maskPaint.setColorFilter(new PorterDuffColorFilter(0xffffff00, PorterDuff.Mode.SRC_ATOP));
+        maskPaint.setColorFilter(new PorterDuffColorFilter(0xffff0000, PorterDuff.Mode.SRC_ATOP));
     }
 
     @Override
@@ -33,6 +33,16 @@ public class MaskImageView extends ImageView {
         masker = new Masker(bm);
         bitmapWidth = bm.getWidth();
         bitmapHeight = bm.getHeight();
+    }
+
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        int width = MeasureSpec.getSize(widthMeasureSpec);
+        int height = MeasureSpec.getSize(heightMeasureSpec);
+        int size = Math.min(width, height);
+        widthMeasureSpec = MeasureSpec.makeMeasureSpec(size, MeasureSpec.EXACTLY);
+        heightMeasureSpec = MeasureSpec.makeMeasureSpec(size, MeasureSpec.EXACTLY);
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
     }
 
     @Override
