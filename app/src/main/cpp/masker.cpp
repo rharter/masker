@@ -1,6 +1,7 @@
 #include <jni.h>
 #include <string>
 #include <queue>
+#include <vector>
 
 #include <android/bitmap.h>
 #include <android/log.h>
@@ -38,26 +39,32 @@ struct range {
 
 class Masker {
 public:
-  uint32_t *pixels;
+  vector <uint32_t> pixels;
+  vector <uint8_t> maskPixels;
+  vector <bool> checkedPixels;
   uint32_t width, height;
 private:
-  queue <range> ranges;
+  vector <int> ranges;
 
 public:
-  Masker(uint32_t *pixels, uint32_t width, uint32_t height);
+  Masker(vector <uint32_t> pixels, uint32_t width, uint32_t height);
   void mask(int x, int y);
 
 private:
   void reset();
-  void linearFill(int x, int y);
-  bool pixelChecked(int position);
-  bool checkPixel(int position);
+  bool checkPixel(int x, int y);
+
+  bool pop(int &x, int &y);
+
+  void push(int x, int y);
 };
 
-Masker::Masker(uint32_t *pixels, uint32_t width, uint32_t height) {
+Masker::Masker(vector <uint32_t> pixels, uint32_t width, uint32_t height) {
   this->pixels = pixels;
   this->width = width;
   this->height = height;
+  this->maskPixels = vector <uint8_t> (width * height);
+  this->checkedPixels = vector <bool> (width * height);
 }
 
 /**
@@ -65,114 +72,74 @@ Masker::Masker(uint32_t *pixels, uint32_t width, uint32_t height) {
  * channel contains the original value, and all others are 0
  */
 void Masker::reset() {
-  queue<range> empty;
-  swap(ranges, empty);
-  for (int i = 0; i < width * height; i++) {
-    this->pixels[i] &= 0x000000ff;
-  }
-}
-
-/**
- * Returns true if a pixel has already been checked this round.
- */
-bool Masker::pixelChecked(int position) {
-  return (pixels[position] & CHECKED_MASK) == CHECKED_MASK;
+  ranges.clear();
+  fill(maskPixels.begin(), maskPixels.end(), 0);
+  fill(checkedPixels.begin(), checkedPixels.end(), false);
 }
 
 /**
  * Checks a pixel by checking that the blue value is within
  * the threshold.
  */
-bool Masker::checkPixel(int position) {
-  int blue = pixels[position] & 0xFF;
+bool Masker::checkPixel(int x, int y) {
+  int blue = pixels[width * y + x] & 0xFF;
   return blue >= 200 && blue <= 255;
+}
+
+bool Masker::pop(int& x, int& y) {
+  if (!ranges.empty()) {
+    int p = ranges.back();
+    x = p / height;
+    y = p % height;
+    ranges.pop_back();
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+void Masker::push(int x, int y) {
+  ranges.push_back(height * x + y);
 }
 
 void Masker::mask(int x, int y) {
   // reset the state
   reset();
 
-  // if this isn't a white pixel, skip it
-  if (!checkPixel((width * y) + x)) {
-    return;
-  }
+  int x1;
+  bool spanAbove, spanBelow;
 
-  // initialize the ranges
-  linearFill(x, y);
+  push(x, y);
 
-  range range;
-  while (ranges.size() > 0) {
-    range = ranges.front();
-    ranges.pop();
+  while (pop(x, y)) {
+    LOGD("Checking position[x=%d, y=%d]", x, y);
+    x1 = x;
+    while (x1 >= 0 && checkPixel(x1, y)) x1--;
+    x1++;
+    spanAbove = spanBelow = 0;
+    while (x1 < width && !checkedPixels[width * y + x1] && checkPixel(x1, y)) {
+      checkedPixels[width * y + x1] = 1;
+      maskPixels[width * y + x1] = 0xff;
 
-    // check above and below each pixel in the flood fill range
-    int downPxIdx = (width * (range.y + 1)) + range.startX;
-    int upPxIdx = (width * (range.y - 1)) + range.startX;
-    int downY = range.y + 1;
-    int upY = range.y - 1;
-
-    for (int i = range.startX; i <= range.endX; i++) {
-      // start fill upwards if we're not at the top and the pixel above
-      // this one is within the color tolerance
-      if (range.y > 0 && !pixelChecked(upPxIdx) && checkPixel(upPxIdx)) {
-        linearFill(i, upY);
+      if (!spanAbove && y > 0 && checkPixel(x1, y - 1)) {
+        LOGD("pushing position[x=%d, y=%d]", x1, y - 1);
+        push(x1, y - 1);
+        spanAbove = 1;
+      } else if (spanAbove && y > 0 && !checkPixel(x1, y - 1)) {
+        spanAbove = 0;
       }
 
-      // start fill downwards if we're not at the bottom and the pixel below
-      // is within the color tolerance
-      if (range.y < (height - 1) && !pixelChecked(downPxIdx) && checkPixel(downPxIdx)) {
-        linearFill(i, downY);
+      if (!spanBelow && y < height - 1 && checkPixel(x1, y + 1)) {
+        LOGD("pushing position[x=%d, y=%d]", x1, y + 1);
+        push(x1, y + 1);
+        spanBelow = 1;
+      } else if (spanBelow && y < height - 1 && !checkPixel(x1, y + 1)) {
+        spanBelow = 0;
       }
 
-      downPxIdx++;
-      upPxIdx++;
+      x1++;
     }
   }
-}
-
-void Masker::linearFill(int x, int y) {
-
-  // find the left edge of the colored area
-  int left = x;
-  int i = (width * y) + x;
-  while (true) {
-    // mark this pixel
-    pixels[i] |= MASK_COLOR;
-
-    // decrement
-    left--;
-    i--;
-
-    // exit the loop if we are at the edge of the bitmap or colored area
-    if (left < 0 || pixelChecked(i) || !checkPixel(i)) {
-      break;
-    }
-  }
-  left++;
-
-  // find the right edge of the colored area
-  int right = x;
-  i = (width * y) + x;
-  while (true) {
-    // mark this pixel
-    pixels[i] |= MASK_COLOR;
-
-    // increment
-    right++;
-    i++;
-
-    // exit the loop if we are at the edge of the bitmap or colored area
-    if (right >= width || pixelChecked(i) || !checkPixel(i)) {
-      break;
-    }
-  }
-  right--;
-
-  range r = range();
-  r.startX = left;
-  r.endX = right;
-  r.y = y;
-  ranges.push(r);
 }
 
 extern "C" {
@@ -206,9 +173,9 @@ Java_com_pixite_graphics_Masker_native_1init(JNIEnv *env, jobject instance, jobj
     return -1;
   }
 
-  int size = bitmapInfo.width * bitmapInfo.height;
-  uint32_t *pixels = new uint32_t[size];
-  memcpy(pixels, (uint32_t *)bitmapPixels, sizeof(uint32_t) * size);
+  u_long size = bitmapInfo.width * bitmapInfo.height;
+  vector <uint32_t> pixels (size);
+  memcpy(&pixels[0], (uint32_t *)bitmapPixels, sizeof(uint32_t) * size);
 
   AndroidBitmap_unlockPixels(env, src);
 
@@ -228,8 +195,8 @@ Java_com_pixite_graphics_Masker_native_1mask(JNIEnv *env, jobject instance, jlon
     return;
   }
 
-  if (bitmapInfo.format != ANDROID_BITMAP_FORMAT_RGBA_8888) {
-    LOGE("Bitmap format must be RGBA_8888");
+  if (bitmapInfo.format != ANDROID_BITMAP_FORMAT_A_8) {
+    LOGE("Bitmap format must be ALPHA_8");
     return;
   }
 
@@ -246,7 +213,7 @@ Java_com_pixite_graphics_Masker_native_1mask(JNIEnv *env, jobject instance, jlon
     return;
   }
 
-  memcpy(resultPixels, masker->pixels, sizeof(uint32_t) * masker->width * masker->height);
+  memcpy(resultPixels, &masker->maskPixels[0], sizeof(uint8_t) * masker->maskPixels.size());
 
   AndroidBitmap_unlockPixels(env, result);
 }
@@ -255,5 +222,5 @@ JNIEXPORT void JNICALL
 Java_com_pixite_graphics_Masker_native_1upload(JNIEnv *env, jobject instance, jlong nativeInstance, jint x, jint y) {
   Masker *masker = reinterpret_cast<Masker*>(nativeInstance);
   masker->mask(x, y);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, masker->width, masker->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, masker->pixels);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, masker->width, masker->height, 0, GL_ALPHA, GL_UNSIGNED_BYTE, &masker->maskPixels[0]);
 }

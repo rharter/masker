@@ -16,7 +16,7 @@ public class Masker {
     }
 
     public Bitmap getMask(int x, int y) {
-        Bitmap result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Bitmap result = Bitmap.createBitmap(width, height, Bitmap.Config.ALPHA_8);
         long start = System.currentTimeMillis();
         native_mask(nativeInstance, result, x, y);
         Log.d("Masker", "native_mask(): " + (System.currentTimeMillis() - start) + "ms");
