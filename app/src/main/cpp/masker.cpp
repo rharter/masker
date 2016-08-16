@@ -44,7 +44,7 @@ public:
   vector <bool> checkedPixels;
   uint32_t width, height;
 private:
-  vector <int> ranges;
+  vector <range> ranges;
 
 public:
   Masker(vector <uint32_t> pixels, uint32_t width, uint32_t height);
@@ -52,11 +52,9 @@ public:
 
 private:
   void reset();
-  bool checkPixel(int x, int y);
-
-  bool pop(int &x, int &y);
-
-  void push(int x, int y);
+  void linearFill(int x, int y);
+  bool pixelChecked(int position);
+  bool checkPixel(int position);
 };
 
 Masker::Masker(vector <uint32_t> pixels, uint32_t width, uint32_t height) {
@@ -78,68 +76,108 @@ void Masker::reset() {
 }
 
 /**
+ * Returns true if a pixel has already been checked this round.
+ */
+bool Masker::pixelChecked(int position) {
+  return checkedPixels[position];
+}
+
+/**
  * Checks a pixel by checking that the blue value is within
  * the threshold.
  */
-bool Masker::checkPixel(int x, int y) {
-  int blue = pixels[width * y + x] & 0xFF;
+bool Masker::checkPixel(int position) {
+  int blue = pixels[position] & 0xFF;
   return blue >= 200 && blue <= 255;
-}
-
-bool Masker::pop(int& x, int& y) {
-  if (!ranges.empty()) {
-    int p = ranges.back();
-    x = p / height;
-    y = p % height;
-    ranges.pop_back();
-    return 1;
-  } else {
-    return 0;
-  }
-}
-
-void Masker::push(int x, int y) {
-  ranges.push_back(height * x + y);
 }
 
 void Masker::mask(int x, int y) {
   // reset the state
   reset();
 
-  int x1;
-  bool spanAbove, spanBelow;
+  // if this isn't a white pixel, skip it
+  if (!checkPixel(width * y + x)) {
+    return;
+  }
 
-  push(x, y);
+  // initialize the ranges
+  linearFill(x, y);
 
-  while (pop(x, y)) {
-    LOGD("Checking position[x=%d, y=%d]", x, y);
-    x1 = x;
-    while (x1 >= 0 && checkPixel(x1, y)) x1--;
-    x1++;
-    spanAbove = spanBelow = 0;
-    while (x1 < width && !checkedPixels[width * y + x1] && checkPixel(x1, y)) {
-      checkedPixels[width * y + x1] = 1;
-      maskPixels[width * y + x1] = 0xff;
+  range range;
+  while (ranges.size() > 0) {
+    range = ranges.back();
+    ranges.pop_back();
 
-      if (!spanAbove && y > 0 && checkPixel(x1, y - 1)) {
-        LOGD("pushing position[x=%d, y=%d]", x1, y - 1);
-        push(x1, y - 1);
-        spanAbove = 1;
-      } else if (spanAbove && y > 0 && !checkPixel(x1, y - 1)) {
-        spanAbove = 0;
+    // check above and below each pixel in the flood fill range
+    int downPxIdx = (width * (range.y + 1)) + range.startX;
+    int upPxIdx = (width * (range.y - 1)) + range.startX;
+    int downY = range.y + 1;
+    int upY = range.y - 1;
+
+    for (int i = range.startX; i <= range.endX; i++) {
+      // start fill upwards if we're not at the top and the pixel above
+      // this one is within the color tolerance
+      if (range.y > 0 && !pixelChecked(upPxIdx) && checkPixel(upPxIdx)) {
+        linearFill(i, upY);
       }
 
-      if (!spanBelow && y < height - 1 && checkPixel(x1, y + 1)) {
-        LOGD("pushing position[x=%d, y=%d]", x1, y + 1);
-        push(x1, y + 1);
-        spanBelow = 1;
-      } else if (spanBelow && y < height - 1 && !checkPixel(x1, y + 1)) {
-        spanBelow = 0;
+      // start fill downwards if we're not at the bottom and the pixel below
+      // is within the color tolerance
+      if (range.y < (height - 1) && !pixelChecked(downPxIdx) && checkPixel(downPxIdx)) {
+        linearFill(i, downY);
       }
 
-      x1++;
+      downPxIdx++;
+      upPxIdx++;
     }
   }
+}
+
+void Masker::linearFill(int x, int y) {
+
+  // find the left edge of the colored area
+  int left = x;
+  int i = (width * y) + x;
+  while (true) {
+    // mark this pixel
+    maskPixels[i] = 0xff;
+    checkedPixels[i] = true;
+
+    // decrement
+    left--;
+    i--;
+
+    // exit the loop if we are at the edge of the bitmap or colored area
+    if (left < 0 || pixelChecked(i) || !checkPixel(i)) {
+      break;
+    }
+  }
+  left++;
+
+  // find the right edge of the colored area
+  int right = x;
+  i = (width * y) + x;
+  while (true) {
+    // mark this pixel
+    maskPixels[i] = 0xff;
+    checkedPixels[i] = true;
+
+    // increment
+    right++;
+    i++;
+
+    // exit the loop if we are at the edge of the bitmap or colored area
+    if (right >= width || pixelChecked(i) || !checkPixel(i)) {
+      break;
+    }
+  }
+  right--;
+
+  range r = range();
+  r.startX = left;
+  r.endX = right;
+  r.y = y;
+  ranges.push_back(r);
 }
 
 extern "C" {
