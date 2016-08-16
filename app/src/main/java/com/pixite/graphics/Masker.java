@@ -16,7 +16,7 @@ public class Masker {
     }
 
     public Bitmap getMask(int x, int y) {
-        Bitmap result = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        Bitmap result = Bitmap.createBitmap(width, height, Bitmap.Config.ALPHA_8);
         long start = System.currentTimeMillis();
         native_mask(nativeInstance, result, x, y);
         Log.d("Masker", "native_mask(): " + (System.currentTimeMillis() - start) + "ms");
@@ -27,9 +27,14 @@ public class Masker {
         native_upload(nativeInstance, x, y);
     }
 
+    public void reset() {
+        native_reset(nativeInstance);
+    }
+
     private native long native_init(Bitmap src);
     private native void native_mask(long nativeInstance, Bitmap result, int x, int y);
     private native void native_upload(long nativeInstance, int x, int y);
+    private native void native_reset(long nativeInstance);
 
     static {
         System.loadLibrary("masker");

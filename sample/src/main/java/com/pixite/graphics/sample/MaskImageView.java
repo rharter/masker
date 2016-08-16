@@ -70,11 +70,12 @@ public class MaskImageView extends ImageView {
                 long start = System.currentTimeMillis();
                 mask = masker.getMask(x, y);
                 Log.d("Masker", "masker.getMask(): " + (System.currentTimeMillis() - start) + "ms");
-                postInvalidate();
+                invalidate();
                 return true;
             case MotionEvent.ACTION_UP:
                 mask = null;
-                postInvalidate();
+                masker.reset();
+                invalidate();
                 return true;
         }
         return super.onTouchEvent(event);
