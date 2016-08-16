@@ -74,6 +74,7 @@ public class MaskImageView extends ImageView {
                 return true;
             case MotionEvent.ACTION_UP:
                 mask = null;
+                masker.reset();
                 invalidate();
                 return true;
         }

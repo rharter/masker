@@ -49,9 +49,9 @@ private:
 public:
   Masker(vector <uint32_t> pixels, uint32_t width, uint32_t height);
   void mask(int x, int y);
+  void reset();
 
 private:
-  void reset();
   void linearFill(int x, int y);
   bool pixelChecked(int position);
   bool checkPixel(int position);
@@ -92,9 +92,6 @@ bool Masker::checkPixel(int position) {
 }
 
 void Masker::mask(int x, int y) {
-  // reset the state
-  reset();
-
   // if this isn't a white pixel, skip it
   if (!checkPixel(width * y + x)) {
     return;
@@ -185,8 +182,10 @@ JNIEXPORT jlong JNICALL Java_com_pixite_graphics_Masker_native_1init(JNIEnv *env
 JNIEXPORT void JNICALL Java_com_pixite_graphics_Masker_native_1mask(JNIEnv *env, jobject instance,
                                                                     jlong nativeInstance, jobject result,
                                                                     jint x, jint y);
-JNIEXPORT void JNICALL
-    Java_com_pixite_graphics_Masker_native_1upload(JNIEnv *env, jobject instance, jlong nativeInstance, jint x, jint y);
+JNIEXPORT void JNICALL Java_com_pixite_graphics_Masker_native_1upload(JNIEnv *env, jobject instance,
+                                                                      jlong nativeInstance, jint x, jint y);
+JNIEXPORT void JNICALL Java_com_pixite_graphics_Masker_native_1reset(JNIEnv *env, jobject instance,
+                                                                     jlong nativeInstance);
 }
 
 
@@ -261,4 +260,10 @@ Java_com_pixite_graphics_Masker_native_1upload(JNIEnv *env, jobject instance, jl
   Masker *masker = reinterpret_cast<Masker*>(nativeInstance);
   masker->mask(x, y);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, masker->width, masker->height, 0, GL_ALPHA, GL_UNSIGNED_BYTE, &masker->maskPixels[0]);
+}
+
+JNIEXPORT void JNICALL
+Java_com_pixite_graphics_Masker_native_1reset(JNIEnv *env, jobject instance, jlong nativeInstance) {
+  Masker *masker = reinterpret_cast<Masker*>(nativeInstance);
+  masker->reset();
 }
