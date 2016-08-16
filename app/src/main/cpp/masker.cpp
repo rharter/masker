@@ -41,7 +41,7 @@ class Masker {
 public:
   vector <uint32_t> pixels;
   vector <uint8_t> maskPixels;
-  vector <bool> checkedPixels;
+//  vector <bool> checkedPixels;
   uint32_t width, height;
 private:
   vector <range> ranges;
@@ -62,7 +62,7 @@ Masker::Masker(vector <uint32_t> pixels, uint32_t width, uint32_t height) {
   this->width = width;
   this->height = height;
   this->maskPixels = vector <uint8_t> (width * height);
-  this->checkedPixels = vector <bool> (width * height);
+//  this->checkedPixels = vector <bool> (width * height);
 }
 
 /**
@@ -72,14 +72,14 @@ Masker::Masker(vector <uint32_t> pixels, uint32_t width, uint32_t height) {
 void Masker::reset() {
   ranges.clear();
   fill(maskPixels.begin(), maskPixels.end(), 0);
-  fill(checkedPixels.begin(), checkedPixels.end(), false);
+//  fill(checkedPixels.begin(), checkedPixels.end(), false);
 }
 
 /**
  * Returns true if a pixel has already been checked this round.
  */
 bool Masker::pixelChecked(int position) {
-  return checkedPixels[position];
+  return false;//checkedPixels[position];
 }
 
 /**
@@ -114,13 +114,13 @@ void Masker::mask(int x, int y) {
     for (int i = range.startX; i <= range.endX; i++) {
       // start fill upwards if we're not at the top and the pixel above
       // this one is within the color tolerance
-      if (range.y > 0 && !pixelChecked(upPxIdx) && checkPixel(upPxIdx)) {
+      if (range.y > 0 && maskPixels[i] != 0xff && checkPixel(upPxIdx)) {
         linearFill(i, upY);
       }
 
       // start fill downwards if we're not at the bottom and the pixel below
       // is within the color tolerance
-      if (range.y < (height - 1) && !pixelChecked(downPxIdx) && checkPixel(downPxIdx)) {
+      if (range.y < (height - 1) && maskPixels[i] != 0xff && checkPixel(downPxIdx)) {
         linearFill(i, downY);
       }
 
@@ -138,14 +138,14 @@ void Masker::linearFill(int x, int y) {
   while (true) {
     // mark this pixel
     maskPixels[i] = 0xff;
-    checkedPixels[i] = true;
+//    checkedPixels[i] = true;
 
     // decrement
     left--;
     i--;
 
     // exit the loop if we are at the edge of the bitmap or colored area
-    if (left < 0 || pixelChecked(i) || !checkPixel(i)) {
+    if (left < 0 /*|| pixelChecked(i)*/ || !checkPixel(i)) {
       break;
     }
   }
@@ -157,14 +157,14 @@ void Masker::linearFill(int x, int y) {
   while (true) {
     // mark this pixel
     maskPixels[i] = 0xff;
-    checkedPixels[i] = true;
+//    checkedPixels[i] = true;
 
     // increment
     right++;
     i++;
 
     // exit the loop if we are at the edge of the bitmap or colored area
-    if (right >= width || pixelChecked(i) || !checkPixel(i)) {
+    if (right >= width /*|| pixelChecked(i)*/ || !checkPixel(i)) {
       break;
     }
   }
