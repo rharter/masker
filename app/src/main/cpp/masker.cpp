@@ -8,7 +8,7 @@
 
 #include <GLES2/gl2.h>
 
-#define DEBUG 1
+#define DEBUG 0
 
 #ifdef DEBUG
 #define LOG_TAG "masker"
@@ -21,17 +21,6 @@
 #endif
 
 using namespace std;
-
-/**
- * Pixels within the region will be masked with this color, leaving
- * the last channel (blue in argb) with it's original value.
- */
-const int MASK_COLOR = 0xffffff00;
-
-/**
- * The green channel is used to mark pixels that have already been checked.
- */
-const int CHECKED_MASK = 0x0000ff00;
 
 struct range {
   int startX, endX, y;
@@ -48,11 +37,11 @@ private:
 
 public:
   Masker(vector <uint32_t> pixels, uint32_t width, uint32_t height);
-  void mask(int x, int y);
+  long mask(int x, int y);
   void reset();
 
 private:
-  void linearFill(int x, int y);
+  long linearFill(int x, int y);
   bool pixelChecked(int position);
   bool checkPixel(int position);
 };
@@ -91,14 +80,14 @@ bool Masker::checkPixel(int position) {
   return blue >= 200 && blue <= 255;
 }
 
-void Masker::mask(int x, int y) {
+long Masker::mask(int x, int y) {
   // if this isn't a white pixel, skip it
   if (!checkPixel(width * y + x)) {
-    return;
+    return 0;
   }
 
   // initialize the ranges
-  linearFill(x, y);
+  long maskedPixels = linearFill(x, y);
 
   range range;
   while (ranges.size() > 0) {
@@ -115,22 +104,25 @@ void Masker::mask(int x, int y) {
       // start fill upwards if we're not at the top and the pixel above
       // this one is within the color tolerance
       if (range.y > 0 && !pixelChecked(upPxIdx) && checkPixel(upPxIdx)) {
-        linearFill(i, upY);
+        maskedPixels += linearFill(i, upY);
       }
 
       // start fill downwards if we're not at the bottom and the pixel below
       // is within the color tolerance
       if (range.y < (height - 1) && !pixelChecked(downPxIdx) && checkPixel(downPxIdx)) {
-        linearFill(i, downY);
+        maskedPixels += linearFill(i, downY);
       }
 
       downPxIdx++;
       upPxIdx++;
     }
   }
+
+  return maskedPixels;
 }
 
-void Masker::linearFill(int x, int y) {
+long Masker::linearFill(int x, int y) {
+  int maskedPixels = 0;
 
   // find the left edge of the colored area
   int left = x;
@@ -139,6 +131,7 @@ void Masker::linearFill(int x, int y) {
     // mark this pixel
     maskPixels[i] = 0xff;
     checkedPixels[i] = true;
+    maskedPixels++;
 
     // decrement
     left--;
@@ -158,6 +151,7 @@ void Masker::linearFill(int x, int y) {
     // mark this pixel
     maskPixels[i] = 0xff;
     checkedPixels[i] = true;
+    maskedPixels++;
 
     // increment
     right++;
@@ -175,6 +169,8 @@ void Masker::linearFill(int x, int y) {
   r.endX = right;
   r.y = y;
   ranges.push_back(r);
+
+  return maskedPixels;
 }
 
 extern "C" {
@@ -182,7 +178,7 @@ JNIEXPORT jlong JNICALL Java_com_pixite_graphics_Masker_native_1init(JNIEnv *env
 JNIEXPORT void JNICALL Java_com_pixite_graphics_Masker_native_1mask(JNIEnv *env, jobject instance,
                                                                     jlong nativeInstance, jobject result,
                                                                     jint x, jint y);
-JNIEXPORT void JNICALL Java_com_pixite_graphics_Masker_native_1upload(JNIEnv *env, jobject instance,
+JNIEXPORT jlong JNICALL Java_com_pixite_graphics_Masker_native_1upload(JNIEnv *env, jobject instance,
                                                                       jlong nativeInstance, jint x, jint y);
 JNIEXPORT void JNICALL Java_com_pixite_graphics_Masker_native_1reset(JNIEnv *env, jobject instance,
                                                                      jlong nativeInstance);
@@ -255,11 +251,12 @@ Java_com_pixite_graphics_Masker_native_1mask(JNIEnv *env, jobject instance, jlon
   AndroidBitmap_unlockPixels(env, result);
 }
 
-JNIEXPORT void JNICALL
+JNIEXPORT jlong JNICALL
 Java_com_pixite_graphics_Masker_native_1upload(JNIEnv *env, jobject instance, jlong nativeInstance, jint x, jint y) {
   Masker *masker = reinterpret_cast<Masker*>(nativeInstance);
-  masker->mask(x, y);
+  long maskedPixels = masker->mask(x, y);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, masker->width, masker->height, 0, GL_ALPHA, GL_UNSIGNED_BYTE, &masker->maskPixels[0]);
+  return maskedPixels;
 }
 
 JNIEXPORT void JNICALL

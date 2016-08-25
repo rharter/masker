@@ -23,8 +23,8 @@ public class Masker {
         return result;
     }
 
-    public void uploadMask(int x, int y) {
-        native_upload(nativeInstance, x, y);
+    public long uploadMask(int x, int y) {
+        return native_upload(nativeInstance, x, y);
     }
 
     public void reset() {
@@ -33,11 +33,11 @@ public class Masker {
 
     private native long native_init(Bitmap src);
     private native void native_mask(long nativeInstance, Bitmap result, int x, int y);
-    private native void native_upload(long nativeInstance, int x, int y);
+    private native long native_upload(long nativeInstance, int x, int y);
     private native void native_reset(long nativeInstance);
 
     static {
-        System.loadLibrary("masker");
+        System.loadLibrary("graphics");
     }
 
 }
