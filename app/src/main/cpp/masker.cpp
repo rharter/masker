@@ -55,6 +55,8 @@ Masker::Masker(vector <uint32_t> pixels, uint32_t width, uint32_t height) {
   this->maskPixels = vector <uint8_t> (width * height);
   this->checkedPixels = vector <bool> (width * height);
   this->maskedRect = ARect();
+  this->maskedRect.right = width;
+  this->maskedRect.bottom = height;
 }
 
 /**
@@ -304,5 +306,4 @@ Java_com_pixite_graphics_Masker_native_1getMaskRect(JNIEnv *env, jobject instanc
   (*env).SetIntField(out, (*env).GetFieldID(rectClass, "top", "I"), masker->maskedRect.top);
   (*env).SetIntField(out, (*env).GetFieldID(rectClass, "right", "I"), masker->maskedRect.right);
   (*env).SetIntField(out, (*env).GetFieldID(rectClass, "bottom", "I"), masker->maskedRect.bottom);
-
 }
