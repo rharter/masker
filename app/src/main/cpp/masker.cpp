@@ -90,8 +90,9 @@ bool Masker::checkPixel(int position) {
 }
 
 long Masker::mask(int x, int y) {
-  // if this isn't a white pixel, skip it
-  if (!checkPixel(width * y + x)) {
+  // if this isn't a white pixel, or we're already masking this
+  // region because we didn't clear, skip it
+  if (!checkPixel(width * y + x) || pixelChecked(width * y + x)) {
     return 0;
   }
 
