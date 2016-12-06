@@ -86,7 +86,7 @@ bool Masker::pixelChecked(int position) {
  */
 bool Masker::checkPixel(int position) {
   int blue = pixels[position] & 0xFF;
-  return blue >= 200 && blue <= 255;
+  return blue > 10;
 }
 
 long Masker::mask(int x, int y) {
