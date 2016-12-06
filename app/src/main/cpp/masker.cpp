@@ -205,17 +205,20 @@ long Masker::linearFill(int x, int y) {
   return maskedPixels;
 }
 
+
 extern "C" {
 JNIEXPORT jlong JNICALL Java_com_pixite_graphics_Masker_native_1init(JNIEnv *env, jobject instance, jobject src);
 JNIEXPORT void JNICALL Java_com_pixite_graphics_Masker_native_1mask(JNIEnv *env, jobject instance,
                                                                     jlong nativeInstance, jobject result,
                                                                     jint x, jint y);
 JNIEXPORT jlong JNICALL Java_com_pixite_graphics_Masker_native_1upload(JNIEnv *env, jobject instance,
-                                                                      jlong nativeInstance, jint x, jint y);
+                                                                       jlong nativeInstance, jint x, jint y);
 JNIEXPORT void JNICALL Java_com_pixite_graphics_Masker_native_1getMaskRect(JNIEnv *env, jobject instance,
                                                                            jlong nativeInstance, jobject out);
 JNIEXPORT void JNICALL Java_com_pixite_graphics_Masker_native_1reset(JNIEnv *env, jobject instance,
                                                                      jlong nativeInstance);
+JNIEXPORT void JNICALL Java_com_pixite_graphics_Masker_finalizer(JNIEnv *env, jobject instance,
+                                                                       jlong nativeInstance);
 }
 
 
@@ -307,4 +310,10 @@ Java_com_pixite_graphics_Masker_native_1getMaskRect(JNIEnv *env, jobject instanc
   (*env).SetIntField(out, (*env).GetFieldID(rectClass, "top", "I"), masker->maskedRect.top);
   (*env).SetIntField(out, (*env).GetFieldID(rectClass, "right", "I"), masker->maskedRect.right);
   (*env).SetIntField(out, (*env).GetFieldID(rectClass, "bottom", "I"), masker->maskedRect.bottom);
+}
+
+JNIEXPORT void JNICALL
+Java_com_pixite_graphics_Masker_finalizer(JNIEnv *env, jobject instance, jlong nativeInstance) {
+  Masker *masker = reinterpret_cast<Masker*>(nativeInstance);
+  delete masker;
 }

@@ -5,7 +5,7 @@ import android.graphics.Rect;
 
 public class Masker {
 
-    private final long nativeInstance;
+    private long nativeInstance;
 
     private final int width, height;
 
@@ -41,11 +41,23 @@ public class Masker {
         native_reset(nativeInstance);
     }
 
+    @Override
+    protected void finalize() throws Throwable {
+        try {
+            finalizer(nativeInstance);
+            nativeInstance = 0;  // Other finalizers can still call us
+        } finally {
+            //noinspection ThrowFromFinallyBlock
+            super.finalize();
+        }
+    }
+
     private native long native_init(Bitmap src);
     private native void native_mask(long nativeInstance, Bitmap result, int x, int y);
     private native long native_upload(long nativeInstance, int x, int y);
     private native void native_getMaskRect(long nativeInstance, Rect out);
     private native void native_reset(long nativeInstance);
+    private native void finalizer(long nativeInstance);
 
     static {
         System.loadLibrary("graphics");
