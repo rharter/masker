@@ -17,7 +17,7 @@ public class Masker {
 
     public Bitmap getMask(int x, int y) {
         Bitmap result = Bitmap.createBitmap(width, height, Bitmap.Config.ALPHA_8);
-        if (x < 0 || x > height || y < 0 || y > height) {
+        if (x < 0 || x > width || y < 0 || y > height) {
             return result;
         }
         native_mask(nativeInstance, result, x, y);
@@ -25,7 +25,7 @@ public class Masker {
     }
 
     public long uploadMask(int x, int y) {
-        if (x < 0 || x > height || y < 0 || y > height) {
+        if (x < 0 || x > width || y < 0 || y > height) {
             return 0;
         }
         return native_upload(nativeInstance, x, y);
