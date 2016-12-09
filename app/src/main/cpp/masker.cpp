@@ -86,7 +86,7 @@ bool Masker::pixelChecked(int position) {
  */
 bool Masker::checkPixel(int position) {
   int blue = pixels[position] & 0xFF;
-  return blue > 10;
+  return blue > 100;
 }
 
 long Masker::mask(int x, int y) {
@@ -292,7 +292,14 @@ JNIEXPORT jlong JNICALL
 Java_com_pixite_graphics_Masker_native_1upload(JNIEnv *env, jobject instance, jlong nativeInstance, jint x, jint y) {
   Masker *masker = reinterpret_cast<Masker*>(nativeInstance);
   long maskedPixels = masker->mask(x, y);
+
+  GLint unpackAlignment;
+  glGetIntegerv(GL_UNPACK_ALIGNMENT, &unpackAlignment);
+
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
   glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, masker->width, masker->height, 0, GL_ALPHA, GL_UNSIGNED_BYTE, &masker->maskPixels[0]);
+
+  glPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignment);
   return maskedPixels;
 }
 
