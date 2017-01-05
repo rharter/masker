@@ -20,7 +20,8 @@ public class Masker {
         if (x < 0 || x > width || y < 0 || y > height) {
             return result;
         }
-        native_mask(nativeInstance, result, x, y);
+        native_mask(nativeInstance, x, y);
+        native_download(nativeInstance, result);
         return result;
     }
 
@@ -28,7 +29,13 @@ public class Masker {
         if (x < 0 || x > width || y < 0 || y > height) {
             return 0;
         }
-        return native_upload(nativeInstance, x, y);
+        long pixels = native_mask(nativeInstance, x, y);
+        native_upload(nativeInstance);
+        return pixels;
+    }
+
+    public void upload() {
+        native_upload(nativeInstance);
     }
 
     public Rect getMaskRect() {
@@ -39,6 +46,10 @@ public class Masker {
 
     public void reset() {
         native_reset(nativeInstance);
+    }
+
+    public void clear() {
+        native_clear(nativeInstance);
     }
 
     @Override
@@ -53,10 +64,12 @@ public class Masker {
     }
 
     private native long native_init(Bitmap src);
-    private native void native_mask(long nativeInstance, Bitmap result, int x, int y);
-    private native long native_upload(long nativeInstance, int x, int y);
+    private native void native_download(long nativeInstance, Bitmap result);
+    private native long native_mask(long nativeInstance, int x, int y);
+    private native void native_upload(long nativeInstance);
     private native void native_getMaskRect(long nativeInstance, Rect out);
     private native void native_reset(long nativeInstance);
+    private native void native_clear(long nativeInstance);
     private native void finalizer(long nativeInstance);
 
     static {
