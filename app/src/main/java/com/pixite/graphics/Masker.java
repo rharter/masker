@@ -15,6 +15,13 @@ public class Masker {
         nativeInstance = native_init(src);
     }
 
+    /**
+     * Creates a mask based on the pixel coordinates and returns it as a bitmap.
+     *
+     * @param x The horizontal location of the target point.
+     * @param y The vertical location of the target point.
+     * @return An ALPHA_8 bitmap containing the mask pixels.
+     */
     public Bitmap getMask(int x, int y) {
         Bitmap result = Bitmap.createBitmap(width, height, Bitmap.Config.ALPHA_8);
         if (x < 0 || x > width || y < 0 || y > height) {
@@ -25,6 +32,14 @@ public class Masker {
         return result;
     }
 
+    /**
+     * Creates a mask based on the pixel coordinates and uploads it to the currently
+     * bound texture unit, with a GL_ALPHA format.
+     *
+     * @param x The horizontal location of the target point.
+     * @param y The vertical location of the target point.
+     * @return The number of pixels contained in the mask.
+     */
     public long uploadMask(int x, int y) {
         if (x < 0 || x > width || y < 0 || y > height) {
             return 0;
@@ -34,22 +49,48 @@ public class Masker {
         return pixels;
     }
 
+    /**
+     * Uploads the current mask to the currently bound texture unit, with a GL_ALPHA format.
+     */
     public void upload() {
         native_upload(nativeInstance);
     }
 
+    /**
+     * Gets the currently masked area, in pixels, within the image.
+     * @return The smallest rect containing the masked area.
+     */
     public Rect getMaskRect() {
         Rect out = new Rect();
         native_getMaskRect(nativeInstance, out);
         return out;
     }
 
+    /**
+     * Resets the mask, which makes it entirely masked.
+     */
     public void reset() {
         native_reset(nativeInstance);
     }
 
+    /**
+     * Clears the mask so it's ready to be uploaded with no areas masked.
+     */
     public void clear() {
         native_clear(nativeInstance);
+    }
+
+    /**
+     * Deletes the native assets used by the Masker. This must be called when finished
+     * with the masker.
+     */
+    public void destroy() {
+        try {
+            finalizer(nativeInstance);
+            nativeInstance = 0;  // Other finalizers can still call us
+        } catch (Exception e) {
+            // no op
+        }
     }
 
     @Override
