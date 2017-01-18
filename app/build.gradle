@@ -1,7 +1,5 @@
 apply plugin: 'com.android.library'
 
-def platformVersion = 18
-
 android {
     compileSdkVersion 25
     buildToolsVersion "25.0.2"
@@ -11,11 +9,6 @@ android {
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
-        externalNativeBuild {
-            cmake {
-                arguments "-DTARGET_PLATFORM_VERSION=${platformVersion}"
-            }
-        }
     }
     buildTypes {
         release {
