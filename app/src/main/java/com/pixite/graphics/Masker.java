@@ -33,6 +33,17 @@ public class Masker {
     }
 
     /**
+     * Checks whether the pixel at the given coordinates is part of the current mask.
+     *
+     * @param x The horizontal location of the target point.
+     * @param y The vertical location of the target point.
+     * @return True if the pixel is part of the mask, otherwise false.
+     */
+    public boolean isInMask(int x, int y) {
+        return native_isInMask(nativeInstance, x, y);
+    }
+
+    /**
      * Creates a mask based on the pixel coordinates and uploads it to the currently
      * bound texture unit, with a GL_ALPHA format.
      *
@@ -106,6 +117,7 @@ public class Masker {
 
     private native long native_init(Bitmap src);
     private native void native_download(long nativeInstance, Bitmap result);
+    private native boolean native_isInMask(long nativeInstance, int x, int y);
     private native long native_mask(long nativeInstance, int x, int y);
     private native void native_upload(long nativeInstance);
     private native void native_getMaskRect(long nativeInstance, Rect out);

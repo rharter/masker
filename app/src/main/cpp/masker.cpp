@@ -40,6 +40,7 @@ private:
 public:
   Masker(vector <uint32_t> pixels, uint32_t width, uint32_t height);
   long mask(int x, int y);
+  bool isInMask(int x, int y);
   void reset();
   void clear();
 
@@ -95,16 +96,16 @@ bool Masker::checkPixel(int position) {
   return blue > 100;
 }
 
+bool Masker::isInMask(int x, int y) {
+  return maskPixels[width * y + x] == 0xff;
+}
+
 long Masker::mask(int x, int y) {
   // if this isn't a white pixel, or we're already masking this
   // region because we didn't clear, skip it
   if (!checkPixel(width * y + x) || pixelChecked(width * y + x)) {
     return 0;
   }
-
-  // initialize the mask rect
-  maskedRect.left = maskedRect.right = x;
-  maskedRect.top = maskedRect.bottom = y;
 
   // initialize the ranges
   long maskedPixels = linearFill(x, y);
@@ -216,6 +217,8 @@ extern "C" {
 JNIEXPORT jlong JNICALL Java_com_pixite_graphics_Masker_native_1init(JNIEnv *env, jobject instance, jobject src);
 JNIEXPORT void JNICALL Java_com_pixite_graphics_Masker_native_1download(JNIEnv *env, jobject instance,
                                                                     jlong nativeInstance, jobject result);
+JNIEXPORT jboolean JNICALL Java_com_pixite_graphics_Masker_native_1isInMask(JNIEnv *env, jobject instance,
+                                                                            jlong nativeInstance, jint x, jint y);
 JNIEXPORT jlong JNICALL Java_com_pixite_graphics_Masker_native_1mask(JNIEnv *env, jobject instance,
                                                                        jlong nativeInstance, jint x, jint y);
 JNIEXPORT void JNICALL Java_com_pixite_graphics_Masker_native_1upload(JNIEnv *env, jobject instance,
@@ -294,6 +297,13 @@ Java_com_pixite_graphics_Masker_native_1download(JNIEnv *env, jobject instance, 
   AndroidBitmap_unlockPixels(env, result);
 }
 
+extern "C"
+JNIEXPORT jboolean JNICALL
+Java_com_pixite_graphics_Masker_native_1isInMask(JNIEnv *env, jobject instance, jlong nativeInstance, jint x, jint y) {
+  Masker *masker = reinterpret_cast<Masker*>(nativeInstance);
+  return (jboolean) masker->isInMask(x, y);
+}
+
 JNIEXPORT jlong JNICALL
 Java_com_pixite_graphics_Masker_native_1mask(JNIEnv *env, jobject instance, jlong nativeInstance, jint x, jint y) {
   Masker *masker = reinterpret_cast<Masker*>(nativeInstance);
@@ -308,7 +318,7 @@ Java_com_pixite_graphics_Masker_native_1upload(JNIEnv *env, jobject instance, jl
   glGetIntegerv(GL_UNPACK_ALIGNMENT, &unpackAlignment);
 
   glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_ALPHA, masker->width, masker->height, 0, GL_ALPHA, GL_UNSIGNED_BYTE, &masker->maskPixels[0]);
+  glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, masker->width, masker->height, GL_ALPHA, GL_UNSIGNED_BYTE, &masker->maskPixels[0]);
 
   glPixelStorei(GL_UNPACK_ALIGNMENT, unpackAlignment);
 }
