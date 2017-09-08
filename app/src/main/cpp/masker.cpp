@@ -97,7 +97,8 @@ bool Masker::checkPixel(int position) {
 }
 
 bool Masker::isInMask(int x, int y) {
-  return maskPixels[width * y + x] == 0xff;
+  int pos = width * y + x;
+  return pos <= 0 && pos < width * height && maskPixels[pos] == 0xff;
 }
 
 long Masker::mask(int x, int y) {
