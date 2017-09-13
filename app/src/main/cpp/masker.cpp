@@ -57,8 +57,10 @@ Masker::Masker(vector <uint32_t> pixels, uint32_t width, uint32_t height) {
   this->maskPixels = vector <uint8_t> (width * height);
   this->checkedPixels = vector <bool> (width * height);
   this->maskedRect = ARect();
-  this->maskedRect.right = width;
-  this->maskedRect.bottom = height;
+  this->maskedRect.left = -1;
+  this->maskedRect.top = -1;
+  this->maskedRect.right = -1;
+  this->maskedRect.bottom = -1;
 }
 
 /**
@@ -69,10 +71,10 @@ void Masker::reset() {
   ranges.clear();
   fill(maskPixels.begin(), maskPixels.end(), 0);
   fill(checkedPixels.begin(), checkedPixels.end(), false);
-  maskedRect.left = 0;
-  maskedRect.top = 0;
-  maskedRect.right = width;
-  maskedRect.bottom = height;
+  maskedRect.left = -1;
+  maskedRect.top = -1;
+  maskedRect.right = -1;
+  maskedRect.bottom = -1;
 }
 
 void Masker::clear() {
@@ -106,6 +108,12 @@ long Masker::mask(int x, int y) {
   // region because we didn't clear, skip it
   if (!checkPixel(width * y + x) || pixelChecked(width * y + x)) {
     return 0;
+  }
+
+  // Initialize the mask rect if we need to
+  if (maskedRect.left == -1 && maskedRect.top == -1 && maskedRect.right == -1 && maskedRect.bottom == -1) {
+    maskedRect.left = maskedRect.right = x;
+    maskedRect.top = maskedRect.bottom = y;
   }
 
   // initialize the ranges
